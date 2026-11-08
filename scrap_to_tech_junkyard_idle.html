@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Scrap-to-Tech: Junkyard Idle</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;600;700&family=Inter:wght@400;500;700&display=swap');
+    
+    body {
+      font-family: 'Inter', sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+      background-color: #0b0f17;
+      color: #e2e8f0;
+      overflow-x: hidden;
+    }
+    
+    .font-tech {
+      font-family: 'Chakra Petch', monospace;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #111827;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #374151;
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #4b5563;
+    }
+
+    /* Pulsing & Glow Effects */
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 15px rgba(245, 158, 11, 0.3), inset 0 0 10px rgba(245, 158, 11, 0.2); }
+      50% { box-shadow: 0 0 30px rgba(245, 158, 11, 0.6), inset 0 0 20px rgba(245, 158, 11, 0.4); }
+    }
+    
+    .glow-magnet {
+      animation: pulseGlow 2.5s infinite ease-in-out;
+    }
+
+    /* Floating Click Text Animation */
+    @keyframes floatUpFade {
+      0% {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -65px) scale(1.25);
+      }
+    }
+    
+    .floating-text {
+      position: absolute;
+      pointer-events: none;
+      animation: floatUpFade 0.85s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+      font-weight: 700;
+      z-index: 50;
+    }
+
+    /* Magnet Click Shake */
+    .magnet-active {
+      transform: scale(0.94) translateY(6px);
+      transition: transform 0.06s ease;
+    }
+
+    /* Hazard Stripe background */
+    .hazard-stripe {
+      background: repeating-linear-gradient(
+        -45deg,
+        rgba(245, 158, 11, 0.15),
+        rgba(245, 158, 11, 0.15) 10px,
+        rgba(17, 24, 39, 0.4) 10px,
+        rgba(17, 24, 39, 0.4) 20px
+      );
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-slate-950 text-slate-100 selection:bg-amber-500 selection:text-black">
+
+  <!-- Top Navigation & Resource Bar -->
+  <header class="bg-slate-900/90 border-b border-slate-800 sticky top-0 z-40 backdrop-blur-md px-3 sm:px-6 py-2.5">
+    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+      
+      <!-- Logo & Branding -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-600 to-yellow-400 flex items-center justify-center shadow-lg shadow-amber-500/20 text-slate-950 font-bold text-lg">
+          <i class="fa-solid fa-magnet"></i>
+        </div>
+        <div>
+          <h1 class="font-tech text-base sm:text-lg font-bold tracking-wider text-amber-400 flex items-center gap-2">
+            SCRAP-TO-TECH <span class="text-xs font-semibold px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30">IDLE v1.0</span>
+          </h1>
+          <p class="text-[11px] text-slate-400">Junkyard Tech Automation Empire</p>
+        </div>
+      </div>
+
+      <!-- Core Stats Dashboard -->
+      <div class="flex items-center gap-3 sm:gap-6 bg-slate-950/70 border border-slate-800/80 px-4 py-1.5 rounded-xl">
+        <!-- Scrap Total -->
+        <div class="text-left">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold flex items-center gap-1.5">
+            <i class="fa-solid fa-cubes-stacked text-amber-400"></i> Scrap
+          </div>
+          <div id="stat-scrap" class="font-tech text-base sm:text-xl font-bold text-amber-400 tracking-tight">0</div>
+        </div>
+
+        <!-- SPS (Scrap Per Sec) -->
+        <div class="border-l border-slate-800 pl-3 sm:pl-5 text-left">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold flex items-center gap-1.5">
+            <i class="fa-solid fa-bolt text-cyan-400"></i> Per Sec
+          </div>
+          <div id="stat-sps" class="font-tech text-base sm:text-xl font-bold text-cyan-400 tracking-tight">0.0</div>
+        </div>
+
+        <!-- Tech Shards (Prestige Currency) -->
+        <div class="border-l border-slate-800 pl-3 sm:pl-5 text-left">
+          <div class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold flex items-center gap-1.5">
+            <i class="fa-solid fa-atom text-purple-400"></i> Shards
+          </div>
+          <div id="stat-shards" class="font-tech text-base sm:text-xl font-bold text-purple-400 tracking-tight">0</div>
+        </div>
+      </div>
+
+      <!-- System Control Buttons -->
+      <div class="flex items-center gap-2">
+        <!-- Sound Toggle -->
+        <button id="btn-sound" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition border border-slate-700" title="Toggle Sound">
+          <i id="sound-icon" class="fa-solid fa-volume-high text-xs"></i>
+        </button>
+        <!-- Statistics Modal -->
+        <button id="btn-stats" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition border border-slate-700" title="Game Statistics">
+          <i class="fa-solid fa-chart-simple text-xs"></i>
+        </button>
+        <!-- Save Game -->
+        <button id="btn-save" class="w-9 h-9 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition border border-slate-700" title="Save Progress">
+          <i class="fa-solid fa-floppy-disk text-xs"></i>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- Mobile Tab Navigation Bar -->
+  <div class="md:hidden flex border-b border-slate-800 bg-slate-900/60 sticky top-[61px] z-30">
+    <button onclick="switchMobileTab('salvage')" id="tab-btn-salvage" class="flex-1 py-2.5 text-xs font-semibold text-amber-400 border-b-2 border-amber-400 flex items-center justify-center gap-1.5">
+      <i class="fa-solid fa-magnet"></i> Salvage
+    </button>
+    <button onclick="switchMobileTab('merge')" id="tab-btn-merge" class="flex-1 py-2.5 text-xs font-semibold text-slate-400 border-b-2 border-transparent flex items-center justify-center gap-1.5">
+      <i class="fa-solid fa-microchip"></i> Tech Lab
+    </button>
+    <button onclick="switchMobileTab('automation')" id="tab-btn-automation" class="flex-1 py-2.5 text-xs font-semibold text-slate-400 border-b-2 border-transparent flex items-center justify-center gap-1.5">
+      <i class="fa-solid fa-gears"></i> Upgrades
+    </button>
+  </div>
+
+  <!-- Main Game Layout Grid (3 Columns on desktop, tabs on mobile) -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 grid grid-cols-1 md:grid-cols-12 gap-5">
+
+    <!-- COLUMN 1: Salvage Junkyard & Interactive Magnet (4 cols) -->
+    <section id="panel-salvage" class="md:col-span-4 flex flex-col gap-4">
+      
+      <!-- Interactive Clicker Arena -->
+      <div class="bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 rounded-2xl p-5 flex flex-col items-center justify-center relative overflow-hidden min-h-[340px] shadow-xl">
+        <div class="absolute inset-0 hazard-stripe pointer-events-none opacity-40"></div>
+        
+        <!-- Overclock Ad Indicator Banner -->
+        <div id="overclock-banner" class="hidden absolute top-3 px-3 py-1 rounded-full bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950 font-bold text-xs uppercase tracking-wider shadow-lg flex items-center gap-1.5 z-10 animate-pulse">
+          <i class="fa-solid fa-bolt"></i> Overclock Active: <span id="overclock-timer">60s</span> (2x Boost)
+        </div>
+
+        <div class="text-center z-10 mb-2">
+          <span class="text-xs uppercase font-tech tracking-wider text-slate-400">Manual Scrap Magnet</span>
+          <p class="text-xs text-slate-500">Tap Magnet or press [Space]</p>
+        </div>
+
+        <!-- Magnet Tap Element -->
+        <div class="relative my-3">
+          <div id="magnet-hitbox" class="w-44 h-44 sm:w-48 sm:h-48 rounded-full bg-slate-900/90 border-4 border-amber-500/80 glow-magnet cursor-pointer flex flex-col items-center justify-center text-center p-3 select-none transition-all duration-75 relative group shadow-2xl active:scale-95">
+            <!-- Inner Rings -->
+            <div class="w-32 h-32 rounded-full border border-amber-500/30 flex items-center justify-center group-hover:border-amber-400/60 transition">
+              <i class="fa-solid fa-magnet text-5xl sm:text-6xl text-amber-400 drop-shadow-[0_0_15px_rgba(245,158,11,0.5)] group-hover:scale-105 transition transform"></i>
+            </div>
+            <div class="absolute bottom-4 font-tech text-xs font-semibold text-amber-300/80 bg-slate-950/80 px-2 py-0.5 rounded-full border border-amber-500/20">
+              +<span id="stat-spc">1.0</span> / tap
+            </div>
+          </div>
+          <!-- Click Floating Number Anchor -->
+          <div id="click-floating-container" class="absolute inset-0 pointer-events-none"></div>
+        </div>
+
+        <!-- Simulated Rewarded Ad Boost (Monetization Loop) -->
+        <div class="w-full z-10 mt-2">
+          <button id="btn-overclock" class="w-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-tech font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-amber-500/10 transition-all transform active:scale-98">
+            <i class="fa-solid fa-video text-sm"></i>
+            <span>Watch Sponsor Ad: 2x Boost (60s)</span>
+          </button>
+          <p class="text-[10px] text-center text-slate-500 mt-1.5 flex items-center justify-center gap-1">
+            <i class="fa-solid fa-shield-halved text-emerald-400"></i> High eCPM Rewarded Ad Simulation
+          </p>
+        </div>
+
+      </div>
+
+      <!-- Quick Metrics Summary Card -->
+      <div class="bg-slate-900/60 border border-slate-800 rounded-xl p-4 flex flex-col gap-2">
+        <div class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+          <span>Efficiency Multipliers</span>
+          <i class="fa-solid fa-gauge-high text-amber-400"></i>
+        </div>
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div class="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800">
+            <div class="text-slate-400 text-[11px]">Lab Multiplier</div>
+            <div id="stat-lab-mult" class="font-tech text-base font-bold text-cyan-400 mt-0.5">1.00x</div>
+          </div>
+          <div class="bg-slate-950/60 p-2.5 rounded-lg border border-slate-800">
+            <div class="text-slate-400 text-[11px]">Shard Boost</div>
+            <div id="stat-shard-mult" class="font-tech text-base font-bold text-purple-400 mt-0.5">+0%</div>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- COLUMN 2: Tech Lab / 4x4 Merge Board (4 cols) -->
+    <section id="panel-merge" class="md:col-span-4 hidden md:flex flex-col gap-4">
+      
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col h-full shadow-xl">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div>
+            <h2 class="font-tech text-base font-bold text-cyan-400 flex items-center gap-2">
+              <i class="fa-solid fa-microchip"></i> TECH MERGE LAB
+            </h2>
+            <p class="text-[11px] text-slate-400">Combine scrap components to boost global income</p>
+          </div>
+          <div class="text-right">
+            <span class="text-[10px] text-slate-500 uppercase tracking-wider block">Total Boost</span>
+            <span id="merge-total-boost" class="font-tech font-bold text-emerald-400 text-sm">+0% SPS</span>
+          </div>
+        </div>
+
+        <!-- 4x4 Merge Grid -->
+        <div class="my-auto py-4">
+          <div id="merge-grid" class="grid grid-cols-4 gap-2 bg-slate-950/80 p-2.5 rounded-xl border border-slate-800 aspect-square max-w-[340px] mx-auto w-full">
+            <!-- 16 Tiles generated dynamically by JavaScript -->
+          </div>
+        </div>
+
+        <!-- Merge Controls -->
+        <div class="flex flex-col gap-2 pt-2 border-t border-slate-800">
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span>Fabricate Part:</span>
+            <span class="font-tech text-amber-400 font-semibold" id="craft-cost-label">50 Scrap</span>
+          </div>
+          <button id="btn-craft-part" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-tech font-bold py-2.5 px-3 rounded-xl flex items-center justify-center gap-2 transition active:scale-98 shadow-lg shadow-cyan-600/10">
+            <i class="fa-solid fa-microchip"></i>
+            <span>Fabricate Level 1 Part</span>
+          </button>
+          <div class="text-[10px] text-slate-500 text-center">
+            Tap a part to select, tap another matching part to merge!
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- COLUMN 3: Automation Producers & Corporate Buyout (4 cols) -->
+    <section id="panel-automation" class="md:col-span-4 hidden md:flex flex-col gap-4">
+      
+      <!-- Automated Collectors List -->
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col flex-1 shadow-xl">
+        
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+          <div>
+            <h2 class="font-tech text-base font-bold text-amber-400 flex items-center gap-2">
+              <i class="fa-solid fa-gears"></i> AUTOMATION
+            </h2>
+            <p class="text-[11px] text-slate-400">Passive Junkyard Harvesters</p>
+          </div>
+          <span class="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono">1.15x Cost</span>
+        </div>
+
+        <!-- Producers Scroll Container -->
+        <div id="producers-list" class="flex flex-col gap-2.5 overflow-y-auto max-h-[380px] pr-1">
+          <!-- Dynamic producer cards will be rendered here -->
+        </div>
+
+        <!-- Prestige / Megacorp Buyout Card -->
+        <div class="mt-4 pt-3 border-t border-slate-800">
+          <div class="bg-gradient-to-br from-purple-950/40 via-slate-900 to-purple-950/20 border border-purple-500/30 rounded-xl p-3">
+            <div class="flex items-center justify-between mb-1.5">
+              <div class="font-tech font-bold text-purple-300 text-sm flex items-center gap-1.5">
+                <i class="fa-solid fa-building text-purple-400"></i> Corporate Buyout
+              </div>
+              <span id="prestige-shard-preview" class="text-xs font-tech font-bold text-purple-400">+0 Shards</span>
+            </div>
+            <p class="text-[11px] text-slate-400 leading-snug mb-2.5">
+              Reset scrap and harvesters for <strong class="text-purple-300">Tech Shards</strong> (+10% permanent boost per shard).
+            </p>
+            <button id="btn-prestige" class="w-full bg-purple-700 hover:bg-purple-600 disabled:opacity-40 disabled:pointer-events-none text-white font-tech font-bold py-2 px-3 rounded-lg text-xs flex items-center justify-center gap-2 transition active:scale-98">
+              <i class="fa-solid fa-atom"></i> Sell to Megacorp
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- MODAL: Simulated Rewarded Video Ad -->
+  <div id="modal-ad" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-amber-500/40 rounded-2xl max-w-md w-full p-6 text-center relative overflow-hidden shadow-2xl">
+      <div class="w-16 h-16 rounded-full bg-amber-500/20 text-amber-400 mx-auto flex items-center justify-center text-2xl mb-4 border border-amber-500/40 animate-spin">
+        <i class="fa-solid fa-compact-disc"></i>
+      </div>
+      <h3 class="font-tech text-xl font-bold text-amber-400 mb-1">SPONSOR MESSAGE</h3>
+      <p class="text-xs text-slate-400 mb-5">Simulating CrazyGames / Poki Rewarded Video Ad...</p>
+      
+      <!-- Simulated Progress Bar -->
+      <div class="w-full bg-slate-950 rounded-full h-3 mb-2 p-0.5 border border-slate-800">
+        <div id="ad-progress-bar" class="bg-gradient-to-r from-amber-500 to-yellow-400 h-full rounded-full w-0 transition-all duration-300"></div>
+      </div>
+      <div class="text-xs font-mono text-slate-400 mb-6">Reward unlocking in: <span id="ad-countdown" class="text-amber-400 font-bold">5s</span></div>
+      
+      <p class="text-[11px] text-slate-500 bg-slate-950 p-2.5 rounded-lg border border-slate-800">
+        <i class="fa-solid fa-info-circle text-cyan-400"></i> In production, this trigger connects directly to <code class="text-amber-300">PokiSDK.rewardedBreak()</code> or <code class="text-amber-300">CrazyGames.SDK.ad.requestAd('rewarded')</code> for monetization.
+      </p>
+    </div>
+  </div>
+
+  <!-- MODAL: Offline Earnings Calculation -->
+  <div id="modal-offline" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-cyan-500/40 rounded-2xl max-w-md w-full p-6 text-center relative shadow-2xl">
+      <div class="w-14 h-14 rounded-full bg-cyan-500/20 text-cyan-400 mx-auto flex items-center justify-center text-2xl mb-3 border border-cyan-500/30">
+        <i class="fa-solid fa-clock-rotate-left"></i>
+      </div>
+      <h3 class="font-tech text-xl font-bold text-cyan-400 mb-1">WELCOME BACK, SCRAPPER!</h3>
+      <p class="text-xs text-slate-400 mb-4">Your junkyard harvesters were busy while you were offline.</p>
+      
+      <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 mb-5">
+        <div class="text-xs text-slate-400">Scrap Salvaged Away:</div>
+        <div id="offline-earned-val" class="font-tech text-2xl font-bold text-amber-400 my-1">+0 Scrap</div>
+        <div id="offline-time-val" class="text-[11px] text-slate-500">Offline for: 0 minutes</div>
+      </div>
+
+      <button onclick="closeOfflineModal()" class="w-full bg-cyan-600 hover:bg-cyan-500 text-white font-tech font-bold py-2.5 rounded-xl transition">
+        Collect Salvage
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL: Statistics -->
+  <div id="modal-stats" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 relative shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+        <h3 class="font-tech text-lg font-bold text-amber-400 flex items-center gap-2">
+          <i class="fa-solid fa-chart-column"></i> SCRAPYARD DOSSIER
+        </h3>
+        <button onclick="closeStatsModal()" class="text-slate-400 hover:text-white text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="space-y-2.5 text-xs">
+        <div class="flex justify-between p-2 rounded bg-slate-950 border border-slate-800/80">
+          <span class="text-slate-400">Total Lifetime Scrap:</span>
+          <span id="stats-lifetime-scrap" class="font-tech font-bold text-amber-400">0</span>
+        </div>
+        <div class="flex justify-between p-2 rounded bg-slate-950 border border-slate-800/80">
+          <span class="text-slate-400">Total Magnet Clicks:</span>
+          <span id="stats-total-clicks" class="font-tech font-bold text-slate-200">0</span>
+        </div>
+        <div class="flex justify-between p-2 rounded bg-slate-950 border border-slate-800/80">
+          <span class="text-slate-400">Corporate Buyouts (Prestige):</span>
+          <span id="stats-prestige-count" class="font-tech font-bold text-purple-400">0</span>
+        </div>
+        <div class="flex justify-between p-2 rounded bg-slate-950 border border-slate-800/80">
+          <span class="text-slate-400">Time Played:</span>
+          <span id="stats-playtime" class="font-tech font-bold text-cyan-400">0m 0s</span>
+        </div>
+      </div>
+
+      <div class="mt-5 pt-3 border-t border-slate-800 flex justify-between gap-3">
+        <button onclick="triggerHardResetPrompt()" class="text-xs text-rose-400 hover:text-rose-300 font-semibold flex items-center gap-1.5 py-1.5 px-3 rounded bg-rose-500/10 border border-rose-500/30">
+          <i class="fa-solid fa-triangle-exclamation"></i> Hard Reset
+        </button>
+        <button onclick="closeStatsModal()" class="text-xs bg-slate-800 hover:bg-slate-700 text-white font-tech font-bold px-4 py-2 rounded-lg">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Confirmation Box (Clean replacement for window.confirm) -->
+  <div id="modal-confirm" class="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-sm w-full p-5 text-center shadow-2xl">
+      <div id="confirm-icon-container" class="w-12 h-12 rounded-full mx-auto flex items-center justify-center text-xl mb-3"></div>
+      <h4 id="confirm-title" class="font-tech text-lg font-bold text-white mb-2">Are you sure?</h4>
+      <p id="confirm-desc" class="text-xs text-slate-400 mb-5 leading-relaxed"></p>
+      
+      <div class="flex gap-2">
+        <button id="confirm-btn-cancel" class="flex-1 py-2 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition">
+          Cancel
+        </button>
+        <button id="confirm-btn-ok" class="flex-1 py-2 text-xs font-semibold text-white rounded-xl transition">
+          Confirm
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- In-Game Toast Notifications -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- JAVASCRIPT GAME ENGINE -->
+  <script>
+    /* =====================================================================
+       1. SYNTHESIZED WEB AUDIO API SOUND SYSTEM (No external files needed)
+       ===================================================================== */
+    let audioCtx = null;
+    let soundEnabled = true;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    function playTone(freq, type = 'sine', duration = 0.08, gainVal = 0.1) {
+      if (!soundEnabled) return;
+      try {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        
+        gain.gain.setValueAtTime(gainVal, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + duration);
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {
+        // AudioContext may be restricted before interaction
+      }
+    }
+
+    const soundEffects = {
+      click: () => {
+        // Metallic clink
+        playTone(320 + Math.random() * 80, 'triangle', 0.05, 0.08);
+      },
+      buy: () => {
+        // Pneumatic chirp
+        playTone(520, 'sine', 0.06, 0.1);
+        setTimeout(() => playTone(780, 'triangle', 0.08, 0.08), 50);
+      },
+      merge: () => {
+        // Sci-Fi power up chord
+        playTone(440, 'sine', 0.12, 0.12);
+        setTimeout(() => playTone(660, 'sine', 0.12, 0.12), 60);
+        setTimeout(() => playTone(880, 'triangle', 0.2, 0.15), 120);
+      },
+      prestige: () => {
+        // Deep warp drop
+        playTone(800, 'sawtooth', 0.15, 0.15);
+        setTimeout(() => playTone(400, 'sine', 0.3, 0.2), 100);
+      },
+      boost: () => {
+        // Energy charge
+        playTone(300, 'square', 0.1, 0.08);
+        setTimeout(() => playTone(600, 'square', 0.15, 0.1), 80);
+      }
+    };
+
+    /* =====================================================================
+       2. GAME STATE CONFIGURATION
+       ===================================================================== */
+    const TECH_TIERS = [
+      { name: "Copper Wire", icon: "fa-bolt", boost: 0.02, color: "text-amber-500", bg: "bg-amber-950/40 border-amber-600/50" },
+      { name: "Circuit Board", icon: "fa-microchip", boost: 0.06, color: "text-emerald-400", bg: "bg-emerald-950/40 border-emerald-500/50" },
+      { name: "Processor", icon: "fa-memory", boost: 0.15, color: "text-cyan-400", bg: "bg-cyan-950/40 border-cyan-500/50" },
+      { name: "AI Matrix", icon: "fa-network-wired", boost: 0.35, color: "text-blue-400", bg: "bg-blue-950/40 border-blue-500/50" },
+      { name: "Quantum Core", icon: "fa-atom", boost: 0.85, color: "text-purple-400", bg: "bg-purple-950/40 border-purple-500/50" },
+      { name: "Singularity Drive", icon: "fa-infinity", boost: 2.20, color: "text-rose-400", bg: "bg-rose-950/40 border-rose-500/50" }
+    ];
+
+    const PRODUCER_DATA = [
+      { id: "claw", name: "Rusty Claw", baseCost: 15, baseSps: 0.6, icon: "fa-hand-back-fist" },
+      { id: "crane", name: "Magnetic Crane", baseCost: 100, baseSps: 4.5, icon: "fa-truck-pickup" },
+      { id: "shredder", name: "Industrial Shredder", baseCost: 1100, baseSps: 34, icon: "fa-gear" },
+      { id: "drone", name: "Scrap Drone Fleet", baseCost: 12500, baseSps: 270, icon: "fa-paper-plane" },
+      { id: "smelter", name: "AI Plasma Smelter", baseCost: 140000, baseSps: 2100, icon: "fa-fire-burner" }
+    ];
+
+    let gameState = {
+      scrap: 0,
+      lifetimeScrap: 0,
+      runScrap: 0,
+      totalClicks: 0,
+      playtimeSeconds: 0,
+      techShards: 0,
+      prestigeCount: 0,
+      
+      // Producers count { claw: 0, crane: 0, ... }
+      producers: {
+        claw: 0,
+        crane: 0,
+        shredder: 0,
+        drone: 0,
+        smelter: 0
+      },
+
+      // 4x4 Merge Board: Array of 16 slots (0 = empty, 1..6 = tier index + 1)
+      mergeGrid: Array(16).fill(0),
+      craftCost: 40,
+
+      // Overclock
+      overclockRemaining: 0,
+      
+      lastSaveTime: Date.now()
+    };
+
+    let selectedMergeSlot = null; // for tap-to-merge interactions
+
+    /* =====================================================================
+       3. MATHEMATICS & DERIVED STATS
+       ===================================================================== */
+    function getTechLabMultiplier() {
+      let boostSum = 0;
+      for (let i = 0; i < gameState.mergeGrid.length; i++) {
+        const val = gameState.mergeGrid[i];
+        if (val > 0 && val <= TECH_TIERS.length) {
+          boostSum += TECH_TIERS[val - 1].boost;
+        }
+      }
+      return 1 + boostSum;
+    }
+
+    function getShardMultiplier() {
+      // Each tech shard yields +10% boost
+      return 1 + (gameState.techShards * 0.10);
+    }
+
+    function getOverclockMultiplier() {
+      return gameState.overclockRemaining > 0 ? 2 : 1;
+    }
+
+    function calculateBaseSPS() {
+      let sps = 0;
+      for (const prod of PRODUCER_DATA) {
+        sps += (gameState.producers[prod.id] || 0) * prod.baseSps;
+      }
+      return sps;
+    }
+
+    function calculateEffectiveSPS() {
+      const base = calculateBaseSPS();
+      const labMult = getTechLabMultiplier();
+      const shardMult = getShardMultiplier();
+      const overclockMult = getOverclockMultiplier();
+      return base * labMult * shardMult * overclockMult;
+    }
+
+    function calculateEffectiveSPC() {
+      // 1 base scrap + 5% of SPS
+      const baseClick = 1;
+      const spsFraction = calculateEffectiveSPS() * 0.04;
+      const labMult = getTechLabMultiplier();
+      const shardMult = getShardMultiplier();
+      const overclockMult = getOverclockMultiplier();
+      return Math.max(1, (baseClick + spsFraction) * labMult * shardMult * overclockMult);
+    }
+
+    function getProducerCost(prodId) {
+      const prod = PRODUCER_DATA.find(p => p.id === prodId);
+      const count = gameState.producers[prodId] || 0;
+      // Exponential 1.15x
+      return Math.floor(prod.baseCost * Math.pow(1.15, count));
+    }
+
+    function calculatePrestigeShardsEarnable() {
+      if (gameState.runScrap < 10000) return 0;
+      // Formula: floor(sqrt(runScrap / 10000))
+      return Math.floor(Math.sqrt(gameState.runScrap / 10000));
+    }
+
+    /* =====================================================================
+       4. NUMBER FORMATTER (K, M, B, T, Qa, etc.)
+       ===================================================================== */
+    function formatNumber(num) {
+      if (num === null || isNaN(num)) return "0";
+      if (num < 1000) return num.toLocaleString('en-US', { maximumFractionDigits: 1 });
+      const suffixes = ["", "K", "M", "B", "T", "Qa", "Qi", "Sx", "Sp"];
+      const i = Math.floor(Math.log10(num) / 3);
+      if (i >= suffixes.length) return num.toExponential(2);
+      const formatted = (num / Math.pow(10, i * 3)).toFixed(2);
+      return `${formatted} ${suffixes[i]}`;
+    }
+
+    /* =====================================================================
+       5. USER ACTIONS & GAMEPLAY MECHANICS
+       ===================================================================== */
+    // Click Magnet Action
+    function tapMagnet(e) {
+      initAudio();
+      soundEffects.click();
+      
+      const spc = calculateEffectiveSPC();
+      gameState.scrap += spc;
+      gameState.lifetimeScrap += spc;
+      gameState.runScrap += spc;
+      gameState.totalClicks += 1;
+
+      // Magnet UI Click bounce
+      const magnet = document.getElementById('magnet-hitbox');
+      magnet.classList.add('magnet-active');
+      setTimeout(() => magnet.classList.remove('magnet-active'), 80);
+
+      // Spawn floating numbers & particles
+      createFloatingText(e, `+${formatNumber(spc)}`);
+      updateDisplays();
+    }
+
+    function createFloatingText(e, text) {
+      const container = document.getElementById('click-floating-container');
+      const floater = document.createElement('div');
+      floater.className = 'floating-text text-amber-400 font-tech text-base sm:text-lg';
+      floater.innerText = text;
+
+      // Position relative to click or center of magnet
+      let x = 50;
+      let y = 50;
+      if (e && e.clientX) {
+        const rect = container.getBoundingClientRect();
+        x = ((e.clientX - rect.left) / rect.width) * 100;
+        y = ((e.clientY - rect.top) / rect.height) * 100;
+      } else {
+        // Spacebar or keyboard tap -> random variation near center
+        x = 50 + (Math.random() * 20 - 10);
+        y = 45 + (Math.random() * 20 - 10);
+      }
+
+      floater.style.left = `${Math.min(90, Math.max(10, x))}%`;
+      floater.style.top = `${Math.min(90, Math.max(10, y))}%`;
+
+      container.appendChild(floater);
+      setTimeout(() => floater.remove(), 850);
+    }
+
+    // Purchase Producer
+    function buyProducer(prodId) {
+      const cost = getProducerCost(prodId);
+      if (gameState.scrap >= cost) {
+        gameState.scrap -= cost;
+        gameState.producers[prodId] = (gameState.producers[prodId] || 0) + 1;
+        soundEffects.buy();
+        renderProducers();
+        updateDisplays();
+        showToast("Purchased harvester!", "success");
+      } else {
+        showToast("Not enough scrap!", "warning");
+      }
+    }
+
+    // Fabricate Tech Part into Merge Board
+    function craftMergePart() {
+      const cost = gameState.craftCost;
+      if (gameState.scrap < cost) {
+        showToast("Insufficient scrap to craft part!", "warning");
+        return;
+      }
+
+      // Find first empty slot
+      const emptyIndex = gameState.mergeGrid.findIndex(val => val === 0);
+      if (emptyIndex === -1) {
+        showToast("Merge grid is full! Combine parts first.", "warning");
+        return;
+      }
+
+      gameState.scrap -= cost;
+      gameState.craftCost = Math.floor(gameState.craftCost * 1.18);
+      gameState.mergeGrid[emptyIndex] = 1; // Level 1 part (Copper Wire)
+      
+      soundEffects.buy();
+      renderMergeGrid();
+      updateDisplays();
+    }
+
+    // Tap-To-Merge Logic (Mobile & Desktop friendly)
+    function handleSlotClick(index) {
+      initAudio();
+      const currentVal = gameState.mergeGrid[index];
+
+      // If no slot is currently selected:
+      if (selectedMergeSlot === null) {
+        if (currentVal > 0) {
+          selectedMergeSlot = index;
+          renderMergeGrid();
+        }
+        return;
+      }
+
+      // If clicking the same slot again -> Deselect
+      if (selectedMergeSlot === index) {
+        selectedMergeSlot = null;
+        renderMergeGrid();
+        return;
+      }
+
+      const prevIndex = selectedMergeSlot;
+      const prevVal = gameState.mergeGrid[prevIndex];
+
+      // Case 1: Merge identical tiers
+      if (prevVal === currentVal && currentVal < TECH_TIERS.length) {
+        gameState.mergeGrid[index] = currentVal + 1;
+        gameState.mergeGrid[prevIndex] = 0;
+        selectedMergeSlot = null;
+        soundEffects.merge();
+        showToast(`Merged into ${TECH_TIERS[currentVal].name}!`, "cyan");
+      } 
+      // Case 2: Move to empty slot
+      else if (currentVal === 0) {
+        gameState.mergeGrid[index] = prevVal;
+        gameState.mergeGrid[prevIndex] = 0;
+        selectedMergeSlot = null;
+        soundEffects.click();
+      } 
+      // Case 3: Switch selection to this new tile
+      else {
+        selectedMergeSlot = index;
+      }
+
+      renderMergeGrid();
+      updateDisplays();
+    }
+
+    // Prestige / Rebirth Action
+    function executePrestige() {
+      const shardsToGain = calculatePrestigeShardsEarnable();
+      if (shardsToGain <= 0) return;
+
+      gameState.techShards += shardsToGain;
+      gameState.prestigeCount += 1;
+      
+      // Reset progression
+      gameState.scrap = 0;
+      gameState.runScrap = 0;
+      gameState.craftCost = 40;
+      gameState.mergeGrid = Array(16).fill(0);
+      gameState.producers = { claw: 0, crane: 0, shredder: 0, drone: 0, smelter: 0 };
+      selectedMergeSlot = null;
+
+      soundEffects.prestige();
+      showToast(`Corporate Buyout Complete! +${shardsToGain} Tech Shards`, "purple");
+      
+      renderProducers();
+      renderMergeGrid();
+      updateDisplays();
+    }
+
+    function promptPrestige() {
+      const shards = calculatePrestigeShardsEarnable();
+      if (shards <= 0) {
+        showToast("Need at least 10,000 run scrap to initiate buyout!", "warning");
+        return;
+      }
+
+      openCustomConfirm(
+        "fa-solid fa-atom text-purple-400 bg-purple-500/20 border border-purple-500/30",
+        "Sign Megacorp Deal?",
+        `Reset all scrap, harvesters, and merge tech in exchange for <strong class="text-purple-400">${shards} Tech Shards</strong> (+${shards * 10}% permanent bonus)?`,
+        "bg-purple-600 hover:bg-purple-500",
+        "Sell Junkyard",
+        () => executePrestige()
+      );
+    }
+
+    /* =====================================================================
+       6. REWARDED AD SYSTEM SIMULATION (Poki / CrazyGames Monetization)
+       ===================================================================== */
+    let adInterval = null;
+    function openRewardedAd() {
+      if (gameState.overclockRemaining > 0) {
+        showToast("Overclock is already active!", "warning");
+        return;
+      }
+
+      initAudio();
+      soundEffects.boost();
+      const modal = document.getElementById('modal-ad');
+      const progressBar = document.getElementById('ad-progress-bar');
+      const countdown = document.getElementById('ad-countdown');
+      
+      modal.classList.remove('hidden');
+      progressBar.style.width = '0%';
+      let secondsLeft = 5;
+      countdown.innerText = `${secondsLeft}s`;
+
+      const startTime = Date.now();
+      const totalTime = 5000;
+
+      adInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        const pct = Math.min(100, (elapsed / totalTime) * 100);
+        progressBar.style.width = `${pct}%`;
+        
+        const rem = Math.max(0, Math.ceil((totalTime - elapsed) / 1000));
+        countdown.innerText = `${rem}s`;
+
+        if (elapsed >= totalTime) {
+          clearInterval(adInterval);
+          modal.classList.add('hidden');
+          activateOverclock();
+        }
+      }, 100);
+    }
+
+    function activateOverclock() {
+      gameState.overclockRemaining = 60;
+      soundEffects.boost();
+      showToast("Overclock Boost Activated! 2x Scrap for 60s", "amber");
+      updateDisplays();
+    }
+
+    /* =====================================================================
+       7. UI RENDERING & COMPONENT UPDATES
+       ===================================================================== */
+    function updateDisplays() {
+      const sps = calculateEffectiveSPS();
+      const spc = calculateEffectiveSPC();
+      const labMult = getTechLabMultiplier();
+      const shards = gameState.techShards;
+      const earnableShards = calculatePrestigeShardsEarnable();
+
+      // Top bar counters
+      document.getElementById('stat-scrap').innerText = formatNumber(Math.floor(gameState.scrap));
+      document.getElementById('stat-sps').innerText = formatNumber(sps);
+      document.getElementById('stat-shards').innerText = formatNumber(shards);
+      document.getElementById('stat-spc').innerText = formatNumber(spc);
+
+      // Multipliers
+      document.getElementById('stat-lab-mult').innerText = `${labMult.toFixed(2)}x`;
+      document.getElementById('stat-shard-mult').innerText = `+${(shards * 10)}%`;
+      document.getElementById('merge-total-boost').innerText = `+${((labMult - 1) * 100).toFixed(0)}% SPS`;
+
+      // Craft cost
+      document.getElementById('craft-cost-label').innerText = `${formatNumber(gameState.craftCost)} Scrap`;
+
+      // Prestige Button state
+      const prestigeBtn = document.getElementById('btn-prestige');
+      const prestigePreview = document.getElementById('prestige-shard-preview');
+      prestigePreview.innerText = `+${earnableShards} Shards`;
+      if (earnableShards > 0) {
+        prestigeBtn.removeAttribute('disabled');
+      } else {
+        prestigeBtn.setAttribute('disabled', 'true');
+      }
+
+      // Overclock Banner
+      const banner = document.getElementById('overclock-banner');
+      if (gameState.overclockRemaining > 0) {
+        banner.classList.remove('hidden');
+        document.getElementById('overclock-timer').innerText = `${Math.ceil(gameState.overclockRemaining)}s`;
+      } else {
+        banner.classList.add('hidden');
+      }
+
+      // Update Producer buy button states & costs
+      for (const prod of PRODUCER_DATA) {
+        const cost = getProducerCost(prod.id);
+        const costEl = document.getElementById(`prod-cost-${prod.id}`);
+        const countEl = document.getElementById(`prod-count-${prod.id}`);
+        const btn = document.getElementById(`prod-btn-${prod.id}`);
+        
+        if (costEl) costEl.innerText = `${formatNumber(cost)} Scrap`;
+        if (countEl) countEl.innerText = `Lv. ${gameState.producers[prod.id] || 0}`;
+        if (btn) {
+          if (gameState.scrap >= cost) {
+            btn.classList.remove('opacity-50', 'pointer-events-none');
+          } else {
+            btn.classList.add('opacity-50', 'pointer-events-none');
+          }
+        }
+      }
+    }
+
+    // Render Producers List
+    function renderProducers() {
+      const container = document.getElementById('producers-list');
+      container.innerHTML = '';
+
+      PRODUCER_DATA.forEach(prod => {
+        const count = gameState.producers[prod.id] || 0;
+        const cost = getProducerCost(prod.id);
+        const totalProdSps = count * prod.baseSps;
+
+        const card = document.createElement('div');
+        card.className = "bg-slate-950/70 border border-slate-800 rounded-xl p-2.5 flex items-center justify-between gap-3 hover:border-slate-700 transition";
+        card.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-center text-amber-400 text-lg">
+              <i class="fa-solid ${prod.icon}"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold text-slate-200 font-tech">${prod.name}</span>
+                <span id="prod-count-${prod.id}" class="text-[10px] font-mono font-semibold px-1.5 py-0.2 rounded bg-slate-800 text-amber-400">Lv. ${count}</span>
+              </div>
+              <div class="text-[10px] text-slate-400 flex items-center gap-2 mt-0.5">
+                <span>+${formatNumber(prod.baseSps)}/s ea</span>
+                <span class="text-cyan-400 font-mono">(Total: +${formatNumber(totalProdSps)}/s)</span>
+              </div>
+            </div>
+          </div>
+          <button id="prod-btn-${prod.id}" onclick="buyProducer('${prod.id}')" class="bg-amber-500 hover:bg-amber-400 text-slate-950 font-tech font-bold px-3 py-1.5 rounded-lg text-xs flex flex-col items-end transition active:scale-95 shadow">
+            <span>BUY</span>
+            <span id="prod-cost-${prod.id}" class="text-[10px] font-semibold">${formatNumber(cost)} Scrap</span>
+          </button>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    // Render 4x4 Merge Grid
+    function renderMergeGrid() {
+      const grid = document.getElementById('merge-grid');
+      grid.innerHTML = '';
+
+      gameState.mergeGrid.forEach((tierVal, index) => {
+        const slot = document.createElement('div');
+        const isSelected = selectedMergeSlot === index;
+        
+        let baseStyle = "aspect-square rounded-xl border flex flex-col items-center justify-center cursor-pointer transition-all duration-150 select-none relative ";
+        
+        if (tierVal === 0) {
+          // Empty Slot
+          baseStyle += "bg-slate-900/40 border-slate-800/80 hover:bg-slate-850 hover:border-slate-700 text-slate-700";
+          slot.className = baseStyle;
+          slot.innerHTML = `<i class="fa-solid fa-plus text-xs opacity-20"></i>`;
+        } else {
+          // Populated Tech Part
+          const tier = TECH_TIERS[tierVal - 1];
+          baseStyle += `${tier.bg} ${isSelected ? 'ring-2 ring-white scale-105 shadow-lg shadow-cyan-500/20' : 'hover:scale-102'}`;
+          slot.className = baseStyle;
+          slot.innerHTML = `
+            <i class="fa-solid ${tier.icon} ${tier.color} text-lg sm:text-xl drop-shadow"></i>
+            <span class="text-[9px] font-tech font-bold text-slate-300 mt-1">T${tierVal}</span>
+            <span class="absolute top-1 right-1 text-[8px] font-mono text-emerald-400">+${(tier.boost * 100).toFixed(0)}%</span>
+          `;
+        }
+
+        slot.onclick = () => handleSlotClick(index);
+        grid.appendChild(slot);
+      });
+    }
+
+    /* =====================================================================
+       8. SAVE / LOAD & OFFLINE EARNINGS ENGINE
+       ===================================================================== */
+    const SAVE_KEY = "junkyard_idle_save_v1";
+
+    function saveGame(showNotification = false) {
+      try {
+        gameState.lastSaveTime = Date.now();
+        localStorage.setItem(SAVE_KEY, JSON.stringify(gameState));
+        if (showNotification) {
+          showToast("Game progress saved!", "success");
+        }
+      } catch (err) {
+        console.warn("Storage restricted or unavailable.");
+      }
+    }
+
+    function loadGame() {
+      try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return;
+        const loaded = JSON.parse(raw);
+        
+        // Merge loaded keys safely
+        gameState = {
+          ...gameState,
+          ...loaded,
+          producers: { ...gameState.producers, ...(loaded.producers || {}) },
+          mergeGrid: Array.isArray(loaded.mergeGrid) ? loaded.mergeGrid : gameState.mergeGrid
+        };
+
+        // Offline progress calculation
+        const now = Date.now();
+        const elapsedSeconds = Math.max(0, Math.floor((now - (loaded.lastSaveTime || now)) / 1000));
+        
+        // If away for more than 15 seconds, grant offline scrap (50% efficiency)
+        if (elapsedSeconds > 15) {
+          const effectiveSps = calculateEffectiveSPS();
+          const earned = Math.floor(effectiveSps * elapsedSeconds * 0.5);
+          if (earned > 0) {
+            gameState.scrap += earned;
+            gameState.lifetimeScrap += earned;
+            gameState.runScrap += earned;
+            showOfflineModal(earned, elapsedSeconds);
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to load save file:", e);
+      }
+    }
+
+    function showOfflineModal(earned, seconds) {
+      const modal = document.getElementById('modal-offline');
+      document.getElementById('offline-earned-val').innerText = `+${formatNumber(earned)} Scrap`;
+      
+      const mins = Math.floor(seconds / 60);
+      const hrs = Math.floor(mins / 60);
+      let timeStr = `${seconds}s`;
+      if (hrs > 0) timeStr = `${hrs}h ${mins % 60}m`;
+      else if (mins > 0) timeStr = `${mins}m ${seconds % 60}s`;
+
+      document.getElementById('offline-time-val').innerText = `Offline duration: ${timeStr} (50% efficiency)`;
+      modal.classList.remove('hidden');
+    }
+
+    function closeOfflineModal() {
+      document.getElementById('modal-offline').classList.add('hidden');
+      initAudio();
+      soundEffects.buy();
+    }
+
+    /* =====================================================================
+       9. MODALS, TOASTS & NAVIGATION
+       ===================================================================== */
+    function openStatsModal() {
+      document.getElementById('stats-lifetime-scrap').innerText = formatNumber(Math.floor(gameState.lifetimeScrap));
+      document.getElementById('stats-total-clicks').innerText = gameState.totalClicks.toLocaleString();
+      document.getElementById('stats-prestige-count').innerText = gameState.prestigeCount.toLocaleString();
+      
+      const s = Math.floor(gameState.playtimeSeconds);
+      const m = Math.floor(s / 60);
+      const h = Math.floor(m / 60);
+      document.getElementById('stats-playtime').innerText = h > 0 ? `${h}h ${m % 60}m` : `${m}m ${s % 60}s`;
+
+      document.getElementById('modal-stats').classList.remove('hidden');
+    }
+
+    function closeStatsModal() {
+      document.getElementById('modal-stats').classList.add('hidden');
+    }
+
+    function openCustomConfirm(iconClass, title, desc, confirmBtnClass, confirmBtnText, onConfirm) {
+      const modal = document.getElementById('modal-confirm');
+      const iconContainer = document.getElementById('confirm-icon-container');
+      const titleEl = document.getElementById('confirm-title');
+      const descEl = document.getElementById('confirm-desc');
+      const okBtn = document.getElementById('confirm-btn-ok');
+      const cancelBtn = document.getElementById('confirm-btn-cancel');
+
+      iconContainer.className = `w-12 h-12 rounded-full mx-auto flex items-center justify-center text-xl mb-3 ${iconClass}`;
+      iconContainer.innerHTML = `<i class="${iconClass.split(' ')[0]} ${iconClass.split(' ')[1]}"></i>`;
+      titleEl.innerText = title;
+      descEl.innerHTML = desc;
+      
+      okBtn.className = `flex-1 py-2 text-xs font-semibold text-white rounded-xl transition ${confirmBtnClass}`;
+      okBtn.innerText = confirmBtnText;
+
+      const handleOk = () => {
+        cleanup();
+        onConfirm();
+      };
+
+      const handleCancel = () => {
+        cleanup();
+      };
+
+      const cleanup = () => {
+        modal.classList.add('hidden');
+        okBtn.removeEventListener('click', handleOk);
+        cancelBtn.removeEventListener('click', handleCancel);
+      };
+
+      okBtn.addEventListener('click', handleOk);
+      cancelBtn.addEventListener('click', handleCancel);
+      modal.classList.remove('hidden');
+    }
+
+    function triggerHardResetPrompt() {
+      closeStatsModal();
+      openCustomConfirm(
+        "fa-solid fa-triangle-exclamation text-rose-400 bg-rose-500/20 border border-rose-500/30",
+        "Wipe All Progress?",
+        "This will permanently erase all scrap, upgrades, tech merges, and shards. This action cannot be undone.",
+        "bg-rose-600 hover:bg-rose-500",
+        "Erase Everything",
+        () => {
+          try {
+            localStorage.removeItem(SAVE_KEY);
+          } catch(e) {}
+          location.reload();
+        }
+      );
+    }
+
+    function showToast(message, type = "info") {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      
+      let borderCol = "border-slate-700 bg-slate-900";
+      let icon = "fa-info-circle text-slate-400";
+      
+      if (type === "success") {
+        borderCol = "border-emerald-500/50 bg-slate-900 text-emerald-300";
+        icon = "fa-check-circle text-emerald-400";
+      } else if (type === "warning") {
+        borderCol = "border-amber-500/50 bg-slate-900 text-amber-300";
+        icon = "fa-triangle-exclamation text-amber-400";
+      } else if (type === "cyan") {
+        borderCol = "border-cyan-500/50 bg-slate-900 text-cyan-300";
+        icon = "fa-microchip text-cyan-400";
+      } else if (type === "purple") {
+        borderCol = "border-purple-500/50 bg-slate-900 text-purple-300";
+        icon = "fa-atom text-purple-400";
+      }
+
+      toast.className = `flex items-center gap-2 px-3 py-2 rounded-xl border text-xs shadow-xl transition-all duration-300 transform translate-y-3 opacity-0 ${borderCol}`;
+      toast.innerHTML = `<i class="fa-solid ${icon}"></i> <span>${message}</span>`;
+      
+      container.appendChild(toast);
+      requestAnimationFrame(() => {
+        toast.classList.remove('translate-y-3', 'opacity-0');
+      });
+
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'translate-x-3');
+        setTimeout(() => toast.remove(), 300);
+      }, 2500);
+    }
+
+    // Responsive Mobile Tab Switcher
+    function switchMobileTab(tab) {
+      const panelSalvage = document.getElementById('panel-salvage');
+      const panelMerge = document.getElementById('panel-merge');
+      const panelAutomation = document.getElementById('panel-automation');
+
+      const btnSalvage = document.getElementById('tab-btn-salvage');
+      const btnMerge = document.getElementById('tab-btn-merge');
+      const btnAutomation = document.getElementById('tab-btn-automation');
+
+      [panelSalvage, panelMerge, panelAutomation].forEach(p => p.classList.add('hidden'));
+      [btnSalvage, btnMerge, btnAutomation].forEach(b => {
+        b.classList.remove('text-amber-400', 'border-amber-400');
+        b.classList.add('text-slate-400', 'border-transparent');
+      });
+
+      if (tab === 'salvage') {
+        panelSalvage.classList.remove('hidden');
+        btnSalvage.classList.add('text-amber-400', 'border-amber-400');
+        btnSalvage.classList.remove('text-slate-400', 'border-transparent');
+      } else if (tab === 'merge') {
+        panelMerge.classList.remove('hidden');
+        btnMerge.classList.add('text-amber-400', 'border-amber-400');
+        btnMerge.classList.remove('text-slate-400', 'border-transparent');
+      } else if (tab === 'automation') {
+        panelAutomation.classList.remove('hidden');
+        btnAutomation.classList.add('text-amber-400', 'border-amber-400');
+        btnAutomation.classList.remove('text-slate-400', 'border-transparent');
+      }
+    }
+
+    /* =====================================================================
+       10. CORE GAME LOOP & EVENT LISTENERS
+       ===================================================================== */
+    let lastTick = performance.now();
+
+    function gameLoop(now) {
+      const deltaSeconds = (now - lastTick) / 1000;
+      lastTick = now;
+
+      if (deltaSeconds > 0 && deltaSeconds < 5) {
+        // Passive SPS gain
+        const sps = calculateEffectiveSPS();
+        const earned = sps * deltaSeconds;
+        gameState.scrap += earned;
+        gameState.lifetimeScrap += earned;
+        gameState.runScrap += earned;
+        gameState.playtimeSeconds += deltaSeconds;
+
+        // Overclock timer decrement
+        if (gameState.overclockRemaining > 0) {
+          gameState.overclockRemaining = Math.max(0, gameState.overclockRemaining - deltaSeconds);
+        }
+
+        updateDisplays();
+      }
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    // Auto-save interval (every 10 seconds)
+    setInterval(() => {
+      saveGame(false);
+    }, 10000);
+
+    // Window Setup & Listeners
+    window.onload = function() {
+      loadGame();
+      renderProducers();
+      renderMergeGrid();
+      updateDisplays();
+
+      // Tap Magnet click listener
+      document.getElementById('magnet-hitbox').addEventListener('click', (e) => tapMagnet(e));
+
+      // Spacebar hotkey to tap
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && e.target === document.body) {
+          e.preventDefault();
+          tapMagnet();
+        }
+      });
+
+      // Craft Part Button
+      document.getElementById('btn-craft-part').addEventListener('click', craftMergePart);
+
+      // Rewarded Ad Boost Button
+      document.getElementById('btn-overclock').addEventListener('click', openRewardedAd);
+
+      // Prestige Button
+      document.getElementById('btn-prestige').addEventListener('click', promptPrestige);
+
+      // Stats Button
+      document.getElementById('btn-stats').addEventListener('click', openStatsModal);
+
+      // Manual Save Button
+      document.getElementById('btn-save').addEventListener('click', () => saveGame(true));
+
+      // Sound Toggle Button
+      document.getElementById('btn-sound').addEventListener('click', () => {
+        soundEnabled = !soundEnabled;
+        const icon = document.getElementById('sound-icon');
+        if (soundEnabled) {
+          icon.className = "fa-solid fa-volume-high text-xs";
+          showToast("Sound enabled", "info");
+        } else {
+          icon.className = "fa-solid fa-volume-xmark text-xs";
+          showToast("Sound muted", "info");
+        }
+      });
+
+      // Start continuous RAF game loop
+      lastTick = performance.now();
+      requestAnimationFrame(gameLoop);
+    };
+  </script>
+</body>
+</html>
